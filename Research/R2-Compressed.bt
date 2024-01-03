@@ -1,0 +1,22 @@
+typedef struct FileHeader {
+    uint32 crc32;
+    uint32 uncompressedSize;
+    uint32 unknown;
+};
+
+typedef struct Chunk {
+    uint64 headerTag;
+    uint64 chunkSize;
+    byte compressionMethod;
+    uint64 compressedSize1;
+    uint64 decompressedSize1;
+    uint64 compressedSize2;
+    uint64 decompressedSize2;
+
+    byte chunk[compressedSize1];
+};
+
+FileHeader header;
+
+while (!FEof())
+    Chunk chunk;

@@ -1,0 +1,524 @@
+typedef struct {
+    int32 length;
+    if (length == 0) {
+        local char text[] = "null";
+    } else if (length < 0) {
+        wchar_t text[-length];
+        local int32 thing = Abs(length);
+    } else {
+        char text[length];
+    }
+} FString <size=FStringSize,read=(this.text)>;
+
+int FStringSize(FString &str) {
+    local int32 length = ReadInt(startof(str));
+    if (length < 0) {
+        return sizeof(length) + sizeof(wchar_t) * -length;
+    }
+    return sizeof(length) + sizeof(char) * length;
+}
+
+typedef struct {
+    int32 flags;
+    byte type;
+    switch (type) {
+    case -1:
+        int32 unknown;
+        local struct {
+            int32 length = 0;
+            string text = Str("Unknown: %d", unknown);
+        } text;
+        break;
+    default:
+        FString namespace;
+        FString id;
+        FString text;
+        break;
+    }
+} FText <read=(this.text.text)>;
+
+typedef struct (int startpos) {
+    uint32 offset;
+
+    local int64 off_cur = FTell();
+    FSeek(startpos + offset);
+
+    uint32 size;
+
+    struct ObjectInfo {
+        byte type;
+        FString name;
+        if (type == 0) {
+            uint32 something;
+            byte unknown[6];
+        }
+    } objects[size] <optimize=false>;
+
+    FSeek(off_cur);
+} ObjectTypeMap <read=Str("Object refs: [%d]", this.size)>;
+
+typedef struct (ObjectTypeMap &conts) {
+    uint16 ref;
+    local byte type = GetObjType(conts, ref);
+    local string name = GetObjName(conts, ref);
+} UObjectRef <read=(name)>;
+
+byte GetObjType(ObjectTypeMap &conts, uint16 ref) {
+    if (ref >= conts.size) {
+        Printf("Error: Object ref %x out of bounds\n", ref);
+        return -1;
+    }
+    return conts.objects[ref].type;
+}
+
+string GetObjName(ObjectTypeMap &conts, uint16 ref) {
+    if (ref >= conts.size) {
+        Printf("Error: Object ref %x out of bounds\n", ref);
+        return "null";
+    }
+    return conts.objects[ref].name.text;
+}
+
+typedef struct (int startpos) {
+    uint32 offset;
+
+    local int64 off_cur = FTell();
+    FSeek(startpos + offset);
+
+    uint32 size;
+    FString items[size] <optimize=false>;
+
+    FSeek(off_cur);
+} NameMap <read=Str("Names: [%d]", this.size)>;
+
+typedef struct (NameMap &strings) {
+    local uint16 ref = ReadUShort();
+    FSkip(sizeof(ref));
+
+    if ((ref & 0x8000) == 0x8000) {
+        ref = ref & ~0x8000;
+        int32 unknown;
+    }
+    local string text = GetStringRef(strings, ref);
+} FName <read=(text)>;
+
+string GetStringRef(NameMap &strings, uint16 ref) {
+    if (ref >= strings.size) {
+        SetCursorPos(FTell());
+        Printf("Error: Name %x out of bounds\n", ref);
+        return "null";
+    }
+    return strings.items[ref].text;
+}
+
+struct Property;
+struct Map;
+struct Array;
+struct StructValue;
+
+struct UObject;
+struct PersistenceContainer;
+struct PersistenceBlob;
+
+typedef struct(NameMap &strings, string type, int length, byte packed) {
+    local string text = "???";
+    switch (type) {
+    case "None":
+        text = "None";
+        break;
+    case "StrProperty":
+        if (packed == 0) FSkip(1);
+        FString data;
+        text = data.text;
+        break;
+    case "TextProperty":
+        if (packed == 0) FSkip(1);
+        FText data;
+        if (data.text.length < 0) {
+            text = WStringToUTF8(data.text.text);
+        } else {
+            text = data.text.text;
+        }
+        break;
+    case "BoolProperty":
+        byte data;
+        if (packed == 0) FSkip(1);
+        text = data == 1 ? "true" : "false";
+        break;
+    case "IntProperty":
+        if (packed == 0) FSkip(1);
+        int32 data;
+        text = Str("%d", data);
+        break;
+    case "Int16Property":
+        if (packed == 0) FSkip(1);
+        int16 data;
+        text = Str("%d", data);
+        break;
+    case "MapProperty":
+        Map data(strings);
+        text = Str("{%d}", data.size);
+        break;
+    case "ArrayProperty":
+        Array data(strings);
+        text = Str("[%d]", data.size);
+        break;
+    case "SoftObjectProperty":
+        if (packed == 0) FSkip(1);
+        FString data;
+        text = data.text;
+        break;
+    case "ByteProperty":
+        FSkip(3);
+        if (length == -1 || length == 1) {
+            byte data;
+            text = Str("%d", data);
+        } else {
+            byte data[length];
+            text = Str("[%d]", length);
+        }
+        break;
+    case "FloatProperty":
+        if (packed == 0) FSkip(1);
+        float data;
+        text = Str("%f", data);
+        break;
+    case "DoubleProperty":
+        if (packed == 0) FSkip(1);
+        double data;
+        text = Str("%lf", data);
+        break;
+    case "UInt64Property":
+        if (packed == 0) FSkip(1);
+        uint64 data;
+        text = Str("%Lu", data);
+        break;
+    case "ObjectProperty":
+        if (packed == 0) FSkip(1);
+        int32 data;
+        text = Str("%d", data);
+        break;
+    case "EnumProperty":
+        FName enumTypeIdx(strings);
+        byte unknown;
+        FName data(strings);
+        text = data.text;
+        break;
+    case "NameProperty":
+        if (packed == 0) FSkip(1);
+        FName data(strings);
+        text = data.text;
+        break;
+    case "StructProperty":
+        FName structTypeIdx(strings);
+        byte unknown[17];
+        StructValue data(strings, structTypeIdx.text, packed);
+        text = data.text;
+        break;
+    default:
+        Printf("Property type %s not implemented.\n", type);
+        Exit(1);
+        return;
+    }
+} Value <read=ValueRead>;
+
+string ValueRead(Value &value) {
+    if (exists(value) && exists(value.text)) {
+        return value.text;
+    }
+    return "???";
+}
+
+typedef struct (NameMap &strings, string structType, byte isPacked) {
+    local string text = "???";
+    local int startPos = startof(this);
+    switch (structType) {
+    case "Guid":
+        GUID data;
+        text = GUIDToString(data);
+        break;
+    case "Vector":
+        double data[3];
+        text = Str("Vector(%lf, %lf, %lf)", data[0], data[1], data[2]);
+        break;
+    case "SoftClassPath":
+        FString data;
+        text = data.text;
+        break;
+    case "SoftObjectPath":
+        FString data;
+        text = data.text;
+        break;
+    case "Timespan":
+        int64 data;
+        text = Str("%Ld", data);
+        break;
+    case "DateTime":
+        int64 data;
+        text = Str("%Ld", data);
+        break;
+    case "PersistenceBlob":
+        uint32 length;
+        text = Str("Blob: [%d]", length);
+
+        PersistenceBlob blob(0, FTell());
+
+        FSeek(startof(blob) + length);
+
+        local int32 lastName = blob.container.names.size - 1;
+        local int32 roughlyEnd = startof(blob.container.names.items[lastName])
+            + sizeof(startof(blob.container.names.items[lastName]));
+        break;
+    default:
+        //Printf("Undefined struct type %s, assuming properties list\n", structType);
+        while (true) {
+            if (GetStringRef(strings, ReadShort()) == "None") {
+                FSkip(2);
+                break;
+            }
+            Property property(strings, 0);
+        }
+    }
+} StructValue;
+
+typedef struct (NameMap &strings, string keyType, string valueType) {
+    local string keyType = keyType;
+    local string valueType = valueType;
+    Value key(strings, keyType, -1, 1);
+    Value value(strings, valueType, -1, 1);
+} KeyValue <read=Str("%s = %s", key.text, value.text)>;
+
+typedef struct (NameMap &strings) {
+    FName keyTypeIdx(strings);
+    FName valueTypeIdx(strings);
+
+    local string keyType = keyTypeIdx.text;
+    local string valueType = valueTypeIdx.text;
+
+    byte unknown[5];
+
+    uint32 size;
+
+    KeyValue items(strings, keyType, valueType)[size] <optimize=false>;
+} Map;
+
+typedef struct (NameMap &strings) {
+    FName itemTypeIdx(strings);
+    byte pad;
+
+    local string itemType = itemTypeIdx.text;
+
+    uint32 size;
+
+    if (itemType == "StructProperty") {
+        FName nameRef(strings);
+        FName typeRef(strings);
+        uint32 length;
+        int32 unk;
+        FName structTypeIdx(strings);
+        byte unknown[17];
+        if (size > 0)
+            StructValue items(strings, structTypeIdx.text, 1)[size] <optimize=false>;
+    } else {
+        if (size > 0)
+            Value items(strings, itemType, -1, 1)[size] <optimize=false>;
+    }
+} Array;
+
+typedef struct (NameMap &strings, byte packed) {
+    FName nameIdx(strings);
+    local string name = nameIdx.text;
+    if (name == "None") {
+        byte unknown[4];
+        local string type = "None";
+        local string text = "None";
+        return;
+    }
+
+    FName typeIdx(strings);
+    local string type = typeIdx.text;
+
+    uint32 length;
+    byte unknown[4];
+    local int64 off_cur = FTell();
+
+    Value value(strings, type, length, packed);
+} Property <read=Str("%s (%s) = %s", name, type, exists(value) ? ValueRead(value) : "???")>;
+
+enum <byte> VarType {
+    None,
+    Bool,
+    Int
+};
+
+typedef struct (NameMap &strings) {
+    FString name;
+    uint32 length;
+    while (length > 0) {
+        if (GetStringRef(strings, ReadShort()) == "None") {
+            uint16 end;
+            break;
+        }
+        Property property(strings, 0);
+    }
+
+    switch (name.text) {
+    case "PersistanceKeys1":
+    case "GlobalVariables":
+    case "Variables":
+    case "Variable":
+        int32 unknown;
+        int32 unknown;
+        int32 size;
+        if (size > 0) {
+            struct ITEM (NameMap &strings) {
+                FName key(strings);
+                VarType valueType;
+
+                local string valueText;
+                switch (valueType) {
+                case None:
+                    valueText = "None";
+                    break;
+                case Bool:
+                    int32 value;
+                    valueText = value ? "true" : "false";
+                    break;
+                case Int:
+                    int32 value;
+                    valueText = Str("%d", value);
+                    break;
+                default:
+                    Printf("Unknown variable type %d\n", valueType);
+                    valueText = "???";
+                }
+            } item(strings)[size] <optimize=false, read=Str("%s = %s", key.text, valueText)>;
+        }
+        break;
+    default:
+        FSeek(startof(length) + sizeof(length) + length);
+        if (exists(end) && FTell() - startof(end) > 16) {
+            SetCursorPos(FTell());
+            Printf("Long distance between end and skipped, may have missed something in %s\n", name.text);
+        }
+    }
+} InlineStruct <read=Str("InlineStruct %s: {%d}", name.text, length)>;
+
+string GetNicerObjectName(const char name[]) {
+    return SubStr(FileNameGetExtension(name), 1);
+}
+
+typedef struct (PersistenceContainer &persistence) {
+    UObjectRef objectRef(persistence.objectTypes);
+    int16 containerType;
+
+    local string name = GetNicerObjectName(GetObjName(persistence.objectTypes, objectRef.ref));
+    local uint32 type = GetObjType(persistence.objectTypes, objectRef.ref);
+
+    uint32 length;
+    local int propCount = 0;
+
+    while (length > 0) {
+        if (GetStringRef(persistence.names, ReadShort()) == "None") {
+            uint16 end;
+            break;
+        }
+        Property property(persistence.names, 0);
+        propCount++;
+    }
+
+    FSeek(startof(length) + sizeof(length) + length);
+
+    byte hasExtraData;
+
+    if (hasExtraData > 0) {
+        uint32 size;
+        if (size > 0) {
+            InlineStruct structs(persistence.names)[size] <optimize=false>;
+        }
+    }
+} UObject <read=Str("UObject %s", name)>;
+
+typedef struct ContainerList (int startOffset) {
+    uint32 offset;
+
+    local int64 off_cur = FTell();
+    FSeek(startOffset + offset);
+
+    uint32 size;
+    struct ContainerMetadata {
+        uint32 unk;
+        uint32 unk;
+        uint32 offset;
+        uint32 length;
+    } items[size];
+
+    FSeek(off_cur);
+};
+
+typedef struct PersistenceHeader (byte isRoot, int startOffset) {
+    int32 flags;
+    if (flags == 522)
+        int32 unknown;
+    else
+        ContainerList containers(startOffset);
+
+    if (isRoot) {
+        FString path;
+        FString name;
+    }
+
+    if (flags == 4) {
+        int32 unk;
+    }
+};
+
+typedef struct (PersistenceHeader &header, byte isRoot, int startOffset) {
+    NameMap names(startOffset);
+    int32 unk;
+    int32 unk;
+    ObjectTypeMap objectTypes(startOffset);
+
+    local string primaryObject = GetNicerObjectName(objectTypes.objects[0].name.text);
+
+    int32 unknown;
+
+    local int endPos = startof(objectTypes.size);
+    while (FTell() < endPos) {
+        UObject object(this);
+    }
+} PersistenceContainer <read=Str("Container: %s", primaryObject)>;
+
+typedef struct (byte isRoot, int startOffset) {
+    PersistenceHeader header(isRoot, startOffset);
+
+    if (header.flags != 4) {
+        PersistenceContainer container(header, isRoot, startOffset);
+    } else if (header.flags == 4) {
+        int32 unknown;
+        local int i;
+        for (i = 0; i < header.containers.size; i++) {
+            FSeek(startof(header.containers) + header.containers.items[i].offset);
+            PersistenceContainer container(header, isRoot, FTell() - 4);
+        }
+    }
+
+    local int32 lastName = container.names.size - 1;
+    local int32 newPos = startof(container.names.items[lastName]) + sizeof(container.names.items[lastName]);
+    FSeek(newPos);
+} PersistenceBlob <read=BlobText>;
+
+string BlobText(PersistenceBlob &blob) {
+    if (blob.header.flags == 522) {
+        return Str("Main Blob: %s", blob.container.primaryObject);
+    } else if (blob.header.flags == 4) {
+        return Str("Blob group: [%d]", blob.header.containers.size);
+    }
+}
+
+struct Header {
+    uint32 length;
+    int32 unknown;
+} header;
+
+PersistenceBlob data(1, -sizeof(header)) <open=true>;
