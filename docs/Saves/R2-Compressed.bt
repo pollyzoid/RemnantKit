@@ -1,10 +1,10 @@
-typedef struct FileHeader {
+typedef struct {
     uint32 crc32;
-    uint32 uncompressedSize;
+    uint32 decompressedSize;
     uint32 unknown;
-};
+} FileHeader <style=sHeading1>;
 
-typedef struct Chunk {
+typedef struct {
     uint64 headerTag;
     uint64 chunkSize;
     byte compressionMethod;
@@ -12,9 +12,12 @@ typedef struct Chunk {
     uint64 decompressedSize1;
     uint64 compressedSize2;
     uint64 decompressedSize2;
+    
+    Assert(compressedSize1 == compressedSize2, "Compressed sizes should match");
+    Assert(decompressedSize1 == decompressedSize2, "Decompressed sizes should match");
 
-    byte chunk[compressedSize1];
-};
+    byte chunk[compressedSize1] <style=sData>;
+} Chunk <style=sSection1>;
 
 FileHeader header;
 
