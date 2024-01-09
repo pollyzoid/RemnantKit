@@ -13,4 +13,8 @@
         <AssemblyName>r2-unsav</AssemblyName>
     </PropertyGroup>
 
+    <ItemGroup>
+        <ProjectReference Include="..\RemnantKit.Saves\RemnantKit.Saves.csproj"/>
+    </ItemGroup>
+
 </Project>

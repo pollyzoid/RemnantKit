@@ -9,7 +9,7 @@
 
 Both profile and character saves share the same general structure. Remnant 2 has compressed save
 files, which can be read after decompressing with zlib (after parsing the relevant parts from the
-file). A small decompressing tool will be created soon.
+file). A small decompressing tool is available in `RemnantKit.Tools.UnSav`.
 
 010 templates have been slightly cleaned up – mostly naming- and structure-wise – but are very
 lacking in documentation. Notes about the actual structure and different important bits will be

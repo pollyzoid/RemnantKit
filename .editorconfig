@@ -8,3 +8,14 @@ charset = utf-8
 trim_trailing_whitespace = true
 insert_final_newline = true
 max_line_length = 100
+
+# ReSharper properties
+resharper_align_multiline_binary_expressions_chain = false
+resharper_keep_existing_expr_member_arrangement = false
+resharper_keep_existing_initializer_arrangement = false
+resharper_keep_existing_linebreaks = false
+resharper_trailing_comma_in_multiline_lists = true
+
+# Diagnostics
+dotnet_diagnostic.CS8509.severity = error # missing switch case for named enum value
+dotnet_diagnostic.CS8524.severity = none # missing switch case for unnamed enum value

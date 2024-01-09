@@ -5,7 +5,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RemnantKit.Tools.UnSav", "s
 		{1E8CF721-EA03-48FC-9597-E6D07EC3F770} = {1E8CF721-EA03-48FC-9597-E6D07EC3F770}
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RemnantKit", "src\RemnantKit\RemnantKit.csproj", "{1E8CF721-EA03-48FC-9597-E6D07EC3F770}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RemnantKit.Saves", "src\RemnantKit.Saves\RemnantKit.Saves.csproj", "{1E8CF721-EA03-48FC-9597-E6D07EC3F770}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

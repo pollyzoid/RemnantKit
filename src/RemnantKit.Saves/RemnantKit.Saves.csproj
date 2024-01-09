@@ -8,6 +8,13 @@
         <Authors>pollyzoid</Authors>
         <RepositoryUrl>https://github.com/pollyzoid/RemnantKit</RepositoryUrl>
         <Company>pollyzoid</Company>
+        <RootNamespace>RemnantKit.Saves</RootNamespace>
     </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.2.2"/>
+        <PackageReference Include="JetBrains.Annotations" Version="2023.3.0" PrivateAssets="all"/>
+        <PackageReference Include="System.IO.Hashing" Version="8.0.0"/>
+    </ItemGroup>
 
 </Project>
