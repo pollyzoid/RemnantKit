@@ -5,4 +5,6 @@
  <auto_save>true</auto_save>
  <file>R2-Compressed.bt</file>
  <file>R2-Save.bt</file>
+ <file>R2-WinSaves-Blob.bt</file>
+ <file>R2-WinSaves-Index.bt</file>
 </_010editor_project>

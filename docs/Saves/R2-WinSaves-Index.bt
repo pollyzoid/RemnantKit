@@ -1,0 +1,45 @@
+// "containers.index" in UWP game save folder
+
+typedef struct {
+    uint32 length;
+    if (length == 0)
+        local wchar_t text[] = "";
+    else
+        wchar_t text[length];
+} PrefixWStr <read=(text)>;
+
+struct {
+    uint32 version;
+    Assert(version == 14);
+    int32 entryCount;
+    
+    PrefixWStr name;
+    PrefixWStr aumId <style=sHeading1Accent>;
+    
+    FILETIME lastModified;
+    uint32 syncFlags <format=binary>;
+    PrefixWStr rootContainerId <style=sHeading1Accent>;
+    
+    int64 unknown;
+} header <style=sHeading1,open=true>;
+
+struct {
+    PrefixWStr fileName <style=sSection2>;
+    PrefixWStr entryName;
+    PrefixWStr eTag;
+    
+    ubyte blobId <style=sSection3>;
+    
+    uint32 syncState;
+    
+    GUID containerId <style=sSection3>;
+    
+    // Resulting path to blob index is "$containerIdNoDashes/container.$blobId"
+    
+    FILETIME lastModified;
+    
+    uint32 type;
+    uint32 unknown;
+    
+    int64 fileSize;
+} fileInfo[header.entryCount] <optimize=false, style=sSection1, open=true>;

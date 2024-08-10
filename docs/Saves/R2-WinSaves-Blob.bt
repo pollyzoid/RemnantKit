@@ -1,0 +1,20 @@
+// "container.%d" in UWP game save blob folder
+
+struct {
+    uint32 version;
+    Assert(version == 4);
+    
+    uint32 recordCount;
+} header <style=sHeading1,open=true>;
+
+struct {
+    if (ReadShort() == 0)
+        local wchar_t name[] = "";
+    else
+        wchar_t name[] <style=sSection2>;
+    
+    byte padding[0x80 - sizeof(name)];
+    
+    GUID fileId <style=sSection3>;
+    GUID unknownId <style=sSection3>; // Seems to be identical with fileId
+} record[header.recordCount] <optimize=false,style=sSection1,open=true>;
