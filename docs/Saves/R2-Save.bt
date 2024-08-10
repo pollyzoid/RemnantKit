@@ -439,7 +439,7 @@ typedef struct (PersistenceContainer &persistence) {
     }
 } UObject <read=Str("UObject %s", name)>;
 
-typedef struct ContainerList (int startOffset) {
+typedef struct (int startOffset) {
     uint32 offset;
 
     local int64 off_cur = FTell();
@@ -454,9 +454,9 @@ typedef struct ContainerList (int startOffset) {
     } items[size];
 
     FSeek(off_cur);
-};
+} ContainerList;
 
-typedef struct PersistenceHeader (byte isRoot, int startOffset) {
+typedef struct (byte isRoot, int startOffset) {
     int32 flags;
     if (flags == 522)
         int32 unknown;
@@ -471,7 +471,7 @@ typedef struct PersistenceHeader (byte isRoot, int startOffset) {
     if (flags == 4) {
         int32 unk;
     }
-};
+} PersistenceHeader <style=sHeading2>;
 
 typedef struct (PersistenceHeader &header, byte isRoot, int startOffset) {
     NameMap names(startOffset);
@@ -487,7 +487,7 @@ typedef struct (PersistenceHeader &header, byte isRoot, int startOffset) {
     while (FTell() < endPos) {
         UObject object(this);
     }
-} PersistenceContainer <read=Str("Container: %s", primaryObject)>;
+} PersistenceContainer <read=Str("Container: %s", primaryObject), style=sSection1>;
 
 typedef struct (byte isRoot, int startOffset) {
     PersistenceHeader header(isRoot, startOffset);
@@ -506,7 +506,7 @@ typedef struct (byte isRoot, int startOffset) {
     local int32 lastName = container.names.size - 1;
     local int32 newPos = startof(container.names.items[lastName]) + sizeof(container.names.items[lastName]);
     FSeek(newPos);
-} PersistenceBlob <read=BlobText>;
+} PersistenceBlob <read=BlobText,style=sData>;
 
 string BlobText(PersistenceBlob &blob) {
     if (blob.header.flags == 522) {
@@ -519,6 +519,6 @@ string BlobText(PersistenceBlob &blob) {
 struct Header {
     uint32 length;
     int32 unknown;
-} header;
+} header <style=sHeading1>;
 
 PersistenceBlob data(1, -sizeof(header)) <open=true>;
